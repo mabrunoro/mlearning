@@ -541,16 +541,21 @@ def exe6(folder='bases/'):
 def exe7(folder='bases/'):
 	print('\nExercício 7')
 	data = []
-	with open(folder + 'auto-mpg.data.txt') as f:
+	with open(folder + 'Polinômio.txt') as f:
 		for i in f:
 			l = i.split()
 			if('?' not in l):
-				data.append(list(map(float,l[:8])))
+				data.append(list(map(float,l)))
 
 	data = np.array(data)
+	# print(data)
 
 	# A
 	print('\nLetra A')
+	samples = random.sample(range(data.shape[0]),data.shape[0])
+	ntreino = math.floor(0.7 * data.shape[0])
+	treino = data[samples[:ntreino]]
+	teste = data[samples[ntreino:]]
 
 def main():
 	# exe1()
