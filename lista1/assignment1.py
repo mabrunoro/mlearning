@@ -106,17 +106,16 @@ def bins(vec, size=4):
 			for j in range(size2):
 				vec[args[i+j]] = sum
 
-def getw(val, ord=1):
+def getw(x, y, ord=1):
 	# val = [x y]
-	X = np.ones(val.shape[0])
-	if(val.shape[1] == 2):	# uma entrada e uma saída
-		entrada = val[:,0]
+	X = np.ones(x.shape[0])
+	if(len(x.shape) == 1):	# uma entrada e uma saída
 		for i in range(ord):
-			X = np.vstack((X, entrada**(i+1)))
+			X = np.vstack((X, x**(i+1)))
 		# lembrete: a variável X é na verdade a transposta do X dos slides
 	else:
-		X = np.vstack((X, val[:,:-1].T))
-	return np.dot(np.dot(np.linalg.inv(np.dot(X,X.T)),X),val[:,-1])
+		X = np.vstack((X, x.T))
+	return np.dot(np.dot(np.linalg.inv(np.dot(X,X.T)),X),y)
 
 def kendall(x, y, sig=0.05):
 	# vec = [x y]
@@ -180,7 +179,7 @@ def exe1(folder='bases/'):
 	X = data[:,1:]
 
 	# A
-	print('Letra A')
+	print('\nLetra A')
 	X = center(X, corr=False)
 
 	autovalores,autovetores = autov(X)
@@ -261,7 +260,7 @@ def exe2(folder='bases/'):
 	attr = np.array(attr)
 
 	# A
-	print('Letra A')
+	print('\nLetra A')
 	# a primeira coluna é o ID do paciente, que pode ser descartado
 	# a segunda coluna indica se o câncer é maligno ou benigno
 
@@ -390,7 +389,7 @@ def exe3(folder='bases/'):
 	# data = np.array(data)
 
 	# A
-	print('Letra A')
+	print('\nLetra A')
 	data2 = []
 	for i in data:
 		if('?' not in i):
@@ -461,8 +460,8 @@ def exe5(folder='bases/'):
 	data = np.array(data)
 
 	# A
-	print('Letra A')
-	w = getw(data,1)
+	print('\nLetra A')
+	w = getw(data[:,0],data[:,1],1)
 	print('w0:',w[0])
 	print('w1:',w[1])
 
@@ -471,12 +470,12 @@ def exe5(folder='bases/'):
 	print('Para 2020:', np.dot(w,[1,2020]))
 
 	# C
-	print('Letra C')
+	print('\nLetra C')
 	kendall(data[:,0],data[:,1],0.05)
 	kendall(data[:,0],data[:,1],0.01)
 
 	# D
-	print('Letra D')
+	print('\nLetra D')
 	pearson(data[:,0],data[:,1],0.05)
 	pearson(data[:,0],data[:,1],0.01)
 
@@ -484,7 +483,7 @@ def exe5(folder='bases/'):
 
 
 def exe6(folder='bases/'):
-	print('Exercício 6')
+	print('\nExercício 6')
 	data = []
 	with open(folder + 'auto-mpg.data.txt') as f:
 		for i in f:
@@ -495,9 +494,19 @@ def exe6(folder='bases/'):
 	data = np.array(data)
 
 	# A
+	print('\nLetra A')
 	# A última coluna pode ser removida por se tratar do nome do carro, desnecessário para a análise
 	ntreino = 150
-	print(data)
+	# print(data)
+	w = getw(data[:ntreino,1:], data[:ntreino,0])
+	teste = np.hstack((np.array([[1] * (data.shape[0] - ntreino)]).T, data[ntreino:,1:]))
+	f = (np.dot(teste,w) - data[ntreino:,0]) ** 2
+	L = f.sum() / ntreino
+	print('Modelo:',w)
+	print('RMSE:',L)
+
+	# B
+	print('\nLetra B')
 
 def main():
 	# exe1()
