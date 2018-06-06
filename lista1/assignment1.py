@@ -118,21 +118,21 @@ def getw(val, ord=1):
 		X = np.vstack((X, val[:,:-1].T))
 	return np.dot(np.dot(np.linalg.inv(np.dot(X,X.T)),X),val[:,-1])
 
-def kendall(vec,sig=0.05):
+def kendall(x, y, sig=0.05):
 	# vec = [x y]
-	if(vec.shape[0] < 2):
-		print('Erro Kendall. Menos de 2 exemplos.')
+	if((x.shape[0] < 2) or (y.shape[0] != x.shape[0])):
+		print('Erro Kendall. Número de exemplos.')
 	else:
-		N = vec.shape[0]
+		N = x.shape[0]
 		sum = 0
 		nx = 0
 		ny = 0
 		for i in range(1,N):
 			for j in range(i):
-				sum += np.sign(vec[j,0] - vec[i,0])*np.sign(vec[j,1] - vec[i,1])
-				if((vec[j,0] - vec[i,0]) != 0):
+				sum += np.sign(x[j] - x[i])*np.sign(y[j] - y[i])
+				if((x[j] - x[i]) != 0):
 					nx += 1
-				if((vec[j,1] - vec[i,1]) != 0):
+				if((y[j] - y[i]) != 0):
 					ny += 1
 		if((nx == 0) or (ny == 0)):
 			print('Erro Kendall. Somente pares empatados.')
@@ -144,18 +144,18 @@ def kendall(vec,sig=0.05):
 			else:
 				print("Kendall: hipótese nula aceita, não há possibilidade de haver dependência entre 'x' e 'y' com",1-sig,"de significância.\nTau =",tau)
 
-def pearson(vec, sig, N=20):
+def pearson(x, y, sig, N=20):
 	# N = vec.shape[0]
-	p = np.cov(vec,rowvar=False)[0,1]/math.sqrt(variance(vec[:,0])*variance(vec[:,1]))
+	p = np.cov(x,y,rowvar=False)[0,1]/math.sqrt(variance(x)*variance(y))
 	if(p == 1):
 		print("Pearson: correlação linear perfeita positiva entre 'x' e 'y'.")
 	elif(p == -1):
 		print("Pearson: correlação linear perfeita negativa entre 'x' e 'y'.")
 	elif(p == 0):
 		print("Pearson: hipótese nula. 'x' e 'y' são descorrelacionados.")
-	amostras = random.sample(range(0, vec.shape[0]), N)
+	amostras = random.sample(range(0, x.shape[0]), N)
 	print('\nUsando',N,'amostras...')
-	p = np.cov(vec[amostras], rowvar=False)[0,1] / math.sqrt(variance(vec[amostras,0]) * variance(vec[amostras,1]))
+	p = np.cov(x[amostras], y[amostras], rowvar=False)[0,1] / math.sqrt(variance(x[amostras]) * variance(y[amostras]))
 	to = p*math.sqrt(N-1)/math.sqrt(1-p*p)
 	t = st.t.ppf(sig/2,N-2)
 	if(abs(to) > t):
@@ -472,13 +472,13 @@ def exe5(folder='bases/'):
 
 	# C
 	print('Letra C')
-	kendall(data,0.05)
-	kendall(data,0.01)
+	kendall(data[:,0],data[:,1],0.05)
+	kendall(data[:,0],data[:,1],0.01)
 
 	# D
 	print('Letra D')
-	pearson(data,0.05)
-	pearson(data,0.01)
+	pearson(data[:,0],data[:,1],0.05)
+	pearson(data[:,0],data[:,1],0.01)
 
 
 
@@ -488,12 +488,16 @@ def exe6(folder='bases/'):
 	data = []
 	with open(folder + 'auto-mpg.data.txt') as f:
 		for i in f:
-			data.append(list(map(float, i.split())))
+			l = i.split()
+			if('?' not in l):
+				data.append(list(map(float,l[:8])))
 
 	data = np.array(data)
 
 	# A
 	# A última coluna pode ser removida por se tratar do nome do carro, desnecessário para a análise
+	ntreino = 150
+	print(data)
 
 def main():
 	# exe1()
