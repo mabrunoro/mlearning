@@ -162,6 +162,28 @@ def pearson(x, y, sig, N=20):
 	else:
 		print('Pearson: hipótese nula aceita para',sig,'de significância.\nto =',to,'\nt =',t)
 
+def snedecor(x, y, w, Fs=3.908):
+	X = np.hstack((np.array([ [1] * x.shape[0] ]).T, x))
+	n = w.shape[0]
+	N = x.shape[0]
+	q = n - 1
+	wres = w.copy()
+
+	rss = ((y - np.dot(X,w)) ** 2).sum()
+	# print('RSS:',rss)
+	for i in range(x.shape[1]):
+		waux = w.copy()
+		waux[i] = 0
+		rssi = ((y - np.dot(X,waux)) ** 2).sum()
+		f = ((rssi - rss)/(n - q))/(rss/(N - n - 1))
+		# print('\nCoeficiente:',i)
+		# print('RSSi:',rssi)
+		# print('F:',f)
+		if(f <= Fs):
+			print('\tcoeficiente w',i,' pode ser desconsiderado',sep='')
+			wres[i] = 0
+	return wres
+
 
 
 
@@ -501,19 +523,42 @@ def exe6(folder='bases/'):
 	w = getw(data[:ntreino,1:], data[:ntreino,0])
 	teste = np.hstack((np.array([[1] * (data.shape[0] - ntreino)]).T, data[ntreino:,1:]))
 	f = (np.dot(teste,w) - data[ntreino:,0]) ** 2
-	L = f.sum() / ntreino
+	L = f.sum() / (data.shape[0] - ntreino)
 	print('Modelo:',w)
 	print('RMSE:',L)
 
 	# B
 	print('\nLetra B')
+	w = snedecor(x = data[ntreino:,1:], y = data[ntreino:,0], w = w)
+	f = (np.dot(teste,w) - data[ntreino:,0]) ** 2
+	L = f.sum() / (data.shape[0] - ntreino)
+	print('Novo modelo:',w)
+	print('RMSE:',L)
+
+
+
+
+def exe7(folder='bases/'):
+	print('\nExercício 7')
+	data = []
+	with open(folder + 'auto-mpg.data.txt') as f:
+		for i in f:
+			l = i.split()
+			if('?' not in l):
+				data.append(list(map(float,l[:8])))
+
+	data = np.array(data)
+
+	# A
+	print('\nLetra A')
 
 def main():
 	# exe1()
 	# exe2()
 	# exe3()
 	# exe5()
-	exe6()
+	# exe6()
+	exe7()
 
 if(__name__ == '__main__'):
 	main()
