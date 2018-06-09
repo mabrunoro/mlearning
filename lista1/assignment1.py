@@ -106,6 +106,27 @@ def bins(vec, size=4):
 			for j in range(size2):
 				vec[args[i+j]] = sum
 
+def rmse(x, y, w):
+	t = np.dot(x,w)
+	return math.sqrt(((y - t)**2).sum()/y.shape[0])
+
+def mape(x, y, w):
+	return (100/y.shape[0])*(abs((y - np.dot(x,w))/y)).sum()
+
+def qme(x, y, w):
+	N = x.shape[0]
+	if(len(x) == 1):
+		p = 1
+	else:
+		p = x.shape[1]
+	return ((y - np.dot(x,w)) ** 2).sum()/(N-p)
+
+def rsq(x, y, w):
+	num = ((y - np.dot(x,w)) ** 2).sum()
+	yb = y.mean()
+	den = ((y - yb) ** 2).sum()
+	return 1 - (num/den)
+
 def getw(x, y, ord=1):
 	# val = [x y]
 	X = np.ones(x.shape[0])
@@ -183,6 +204,32 @@ def snedecor(x, y, w, Fs=3.908):
 			print('\tcoeficiente w',i,' pode ser desconsiderado',sep='')
 			wres[i] = 0
 	return wres
+
+def ransac(x, y, s, pot=1, eps=0.2, p=0.99, rmse = 50):
+	T = x.shape[0] * (1 - eps)
+	tau = rmse # math.sqrt(3.84 * (np.var(y) ** 2))
+	L = math.ceil(math.log10(1-p)/math.log10(1-((1-eps)**s)))
+	mk = [0,0]
+	# print('Ransac\tT:',T,'tau:',tau,'L:',L)
+
+	for i in range(L):
+		samples = random.sample(range(x.shape[0]),4)
+		w = getw(x[samples[:s],1:(1+pot)], y[samples[:s]])
+		t = np.dot(x[:,:(1+pot)],w)
+		dentro = abs(t - y) <= tau
+		co = np.unique(dentro, return_counts=True)
+		if(len(co[0]) < 2):
+			continue
+		if(co[0][0]):
+			k = co[1][0]
+		else:
+			k = co[1][1]
+		if(k >= T):
+			w = getw(x[dentro,1:(1+pot)], y[dentro])
+			return w
+		elif(mk[0] < k):
+				mk[1] = dentro
+	return getw(x[mk[1],1:(1+pot)], y[mk[1]])
 
 
 
@@ -522,18 +569,18 @@ def exe6(folder='bases/'):
 	# print(data)
 	w = getw(data[:ntreino,1:], data[:ntreino,0])
 	teste = np.hstack((np.array([[1] * (data.shape[0] - ntreino)]).T, data[ntreino:,1:]))
-	f = (np.dot(teste,w) - data[ntreino:,0]) ** 2
-	L = f.sum() / (data.shape[0] - ntreino)
+	# f = (np.dot(teste,w) - data[ntreino:,0]) ** 2
+	# L = f.sum() / (data.shape[0] - ntreino)
 	print('Modelo:',w)
-	print('RMSE:',L)
+	print('RMSE:',rmse(teste, data[ntreino:,0],w))
 
 	# B
 	print('\nLetra B')
 	w = snedecor(x = data[ntreino:,1:], y = data[ntreino:,0], w = w)
-	f = (np.dot(teste,w) - data[ntreino:,0]) ** 2
-	L = f.sum() / (data.shape[0] - ntreino)
+	# f = (np.dot(teste,w) - data[ntreino:,0]) ** 2
+	# L = f.sum() / (data.shape[0] - ntreino)
 	print('Novo modelo:',w)
-	print('RMSE:',L)
+	print('RMSE:',rmse(teste,data[ntreino:,0],w))
 
 
 
@@ -554,8 +601,93 @@ def exe7(folder='bases/'):
 	print('\nLetra A')
 	samples = random.sample(range(data.shape[0]),data.shape[0])
 	ntreino = math.floor(0.7 * data.shape[0])
-	treino = data[samples[:ntreino]]
-	teste = data[samples[ntreino:]]
+	xtreino = np.vstack((np.ones(ntreino), data[samples[:ntreino],0]))
+	ytreino = data[samples[:ntreino],1]
+	xteste = np.vstack((np.ones(len(samples) - ntreino), data[samples[ntreino:],0]))
+	yteste = data[samples[ntreino:],1]
+
+	wlinear = getw(xtreino.T[:,1], ytreino, 1)
+	print('Modelo:',wlinear)
+	print('RMSE treino:', rmse(xtreino.T,ytreino,wlinear))
+	print('MAPE treino:', mape(xtreino.T,ytreino,wlinear))
+	print('RMSE teste:', rmse(xteste.T,yteste,wlinear))
+	print('MAPE teste:', mape(xteste.T,yteste,wlinear))
+
+	plt.scatter(data[:,0], data[:,1], c='r', edgecolors='k', label='dados')
+	plt.scatter(xtreino.T[:,1], np.dot(xtreino.T,wlinear), c='b', edgecolors='k', label='treino')
+	plt.scatter(xteste.T[:,1], np.dot(xteste.T,wlinear), c='g', edgecolors='k', label='teste')
+	plt.legend()
+	plt.show()
+	# O modelo não se ajustou bem aos dados, pois os dados possuem características polinomiais
+
+	# B
+	print('\nLetra B')
+	qan = qme(xtreino.T, ytreino, wlinear)
+	ran = rsq(xtreino.T, ytreino, wlinear)
+	print('QME modelo linear:',qan)
+	print('R^2 modelo linear:',ran)
+
+	qat = qan
+	rat = ran
+
+	pot = 1
+
+	while((qat <= qan) or (rat >= ran)):
+		qan = qat
+		ran = rat
+		pot += 1
+		xtreino = np.vstack((xtreino, xtreino[1,:] ** pot))
+		xteste = np.vstack((xteste, xteste[1,:] ** pot))
+		wpol = getw(xtreino.T[:,1:], ytreino, pot)
+		qat = qme(xtreino.T, ytreino, wpol)
+		rat = rsq(xtreino.T, ytreino, wpol)
+	print('Grau do melhor modelo:',pot-1)
+	print('QME modelo polinomial:',qan)
+	print('R^2 modelo polinomial:',ran)
+
+	print('Melhor modelo polinomial:',wpol)
+	print('RMSE treino:', rmse(xtreino.T,ytreino,wpol))
+	print('MAPE treino:', mape(xtreino.T,ytreino,wpol))
+	print('RMSE teste:', rmse(xteste.T,yteste,wpol))
+	print('MAPE teste:', mape(xteste.T,yteste,wpol))
+
+	plt.scatter(data[:,0], data[:,1], c='r', edgecolors='k', label='dados')
+	plt.scatter(xtreino.T[:,1], np.dot(xtreino.T,wpol), c='b', edgecolors='k', label='treino')
+	plt.scatter(xteste.T[:,1], np.dot(xteste.T,wpol), c='g', edgecolors='k', label='teste')
+	plt.legend()
+	plt.show()
+	# Não. A presença de outliers dificulta a obtenção de um bom modelo polinomial.
+
+	# C
+	print('\nLetra C')
+	oldrmse = rmse(xtreino.T,ytreino,wpol)
+	xtreino = xtreino[:2,:]
+	xteste = xteste[:2,:]
+	best = [np.array([]), oldrmse, 1]
+
+	for i in range(2,pot):
+		xtreino = np.vstack((xtreino, xtreino[1,:] ** i))
+		xteste = np.vstack((xteste, xteste[1,:] ** i))
+		wpol = ransac(xtreino.T, ytreino, s=20, pot=i, p=0.99, eps=0.2, rmse=oldrmse)
+		# print(xtreino.shape,wpol.shape,i)
+		nrmse = rmse(xtreino.T[:,:(pot+1)],ytreino,wpol)
+		print('RMSE modelo Ransac de grau ',i,': ',nrmse,sep='')
+		if(nrmse <= best[1] or (best[0].shape[0] == 0)):
+			best[2] = i
+			best[1] = nrmse
+			best[0] = wpol
+
+	print('Modelo polinomial Ransac:',best[0])
+	print('RMSE treino:', rmse(xtreino.T[:,:(best[2]+1)],ytreino,best[0]))
+	print('MAPE treino:', mape(xtreino.T[:,:(best[2]+1)],ytreino,best[0]))
+	print('RMSE teste:', rmse(xteste.T[:,:(best[2]+1)],yteste,best[0]))
+	print('MAPE teste:', mape(xteste.T[:,:(best[2]+1)],yteste,best[0]))
+
+	plt.scatter(data[:,0], data[:,1], c='r', edgecolors='k', label='dados')
+	plt.scatter(xtreino.T[:,1], np.dot(xtreino.T[:,:(best[2]+1)],best[0]), c='b', edgecolors='k', label='treino')
+	plt.scatter(xteste.T[:,1], np.dot(xteste.T[:,:(best[2]+1)],best[0]), c='g', edgecolors='k', label='teste')
+	plt.legend()
+	plt.show()
 
 def main():
 	# exe1()
@@ -563,7 +695,7 @@ def main():
 	# exe3()
 	# exe5()
 	# exe6()
-	exe7()
+	# exe7()
 
 if(__name__ == '__main__'):
 	main()
