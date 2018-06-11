@@ -314,7 +314,10 @@ def knn(clss,attr, ntreino,k=5):
 
 	aux = clss[ntreino:][clssa[ntreino:] == 1]	# obtém todos exemplos dados como positivos (TP + FP)
 	res = np.unique(aux == 1, return_counts=True)	# descobre quantos exemplos dados como positivos realmente o são
-	if(len(res[0]) < 2):
+	if(len(res[0]) == 0):
+		tp = 0
+		fp = 0
+	elif(len(res[0]) == 1):
 		if(res[0][0]):
 			tp = res[1][0]
 			fp = 0
@@ -327,10 +330,14 @@ def knn(clss,attr, ntreino,k=5):
 	else:
 		tp = res[1][1]
 		fp = res[1][0]
-	P = 100*tp/(tp+fp)
+	if(tp+fp == 0):
+		P = 0
+	else:
+		P = 100*tp/(tp+fp)
 
 	aux = clss[ntreino:][clssa[ntreino:] == 0]	# obtém todos os exemplos dados como negativos
 	res = np.unique(aux == 1, return_counts=True)	# descobre quantos exemplos são falso negativos
+
 	if(res[0][0]):
 		fn = res[1][0]
 	else:
@@ -338,7 +345,10 @@ def knn(clss,attr, ntreino,k=5):
 			fn = 0
 		else:
 			fn = res[1][1]
-	R = 100*tp/(tp+fn)
+	if(tp+fn == 0):
+		R = 0
+	else:
+		R = 100*tp/(tp+fn)
 
 	return (acc,P,R)
 
@@ -793,6 +803,35 @@ def exe10(folder='bases/'):
 	rec = 0
 	for i in range(niter):
 		(a,p,r) = knn(clss=data[:,-1],attr=data[:,:-1],ntreino=ntreino)
+		acc += a
+		pre += p
+		rec += r
+
+	acc /= 5
+	pre /= 5
+	rec /= 5
+	print('Acurácia:',acc)
+	print('Precisão:',pre)
+	print('Revocação:',rec)
+
+	# C
+	print('\nLetra C')
+	mask = np.ones(ntreino, dtype=bool)
+	j = 0
+	for i in range(ntreino):
+		mask[i] = False
+		acc,_,_ = knn(clss=data[:ntreino,-1][mask], attr=data[:ntreino,:-1][mask], ntreino=math.floor((ntreino-j-1)/2), k=3)
+
+		if(acc >= 95):
+			j += 1
+		else:
+			mask[i] = True
+	acc = 0
+	pre = 0
+	rec = 0
+	mask = np.hstack((mask,np.ones(data.shape[0]-ntreino, dtype=bool)))
+	for i in range(niter):
+		(a,p,r) = knn(clss=data[:,-1][mask],attr=data[:,:-1][mask],ntreino=ntreino)
 		acc += a
 		pre += p
 		rec += r
