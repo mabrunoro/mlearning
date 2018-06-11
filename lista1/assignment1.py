@@ -64,10 +64,15 @@ def nn(clss,attr,ntreino):
 
 	res = np.unique(clss[ntreino:] == clssa[ntreino:], return_counts=True)
 
-	if(res[0][0]):
-		print('\nAcurácia NN:', 100*res[1][0]/(clssa.shape[0]-ntreino))
+	if(len(res[0]) < 2):
+		if(res[0][0]):
+			print('Acurácia NN: 100')
+		else:
+			print('Acurácia NN: 0')
+	elif(res[0][0]):
+		print('Acurácia NN:', 100*res[1][0]/(clssa.shape[0]-ntreino))
 	else:
-		print('\nAcurácia NN:', 100*res[1][1]/(clssa.shape[0]-ntreino))
+		print('Acurácia NN:', 100*res[1][1]/(clssa.shape[0]-ntreino))
 
 def rochio(clss, attr, ntreino):
 	classes = np.unique(clss)
@@ -82,14 +87,19 @@ def rochio(clss, attr, ntreino):
 			aux = np.linalg.norm(attr[i] - medias[j])
 			if(aux < distancia):
 				distancia = aux
-				clssa[i] = clss[j]
+				clssa[i] = classes[j]
 
 	res = np.unique(clss[ntreino:] == clssa[ntreino:], return_counts=True)
 
-	if(res[0][0]):
-		print('\nAcurácia Rochio:', 100*res[1][0]/(clssa.shape[0]-ntreino))
+	if(len(res[0]) < 2):
+		if(res[0][0]):
+			print('Acurácia Rochio: 100')
+		else:
+			print('Acurácia Rochio: 0')
+	elif(res[0][0]):
+		print('Acurácia Rochio:', 100*res[1][0]/(clssa.shape[0]-ntreino))
 	else:
-		print('\nAcurácia Rochio:', 100*res[1][1]/(clssa.shape[0]-ntreino))
+		print('Acurácia Rochio:', 100*res[1][1]/(clssa.shape[0]-ntreino))
 
 def bins(vec, size=4):
 	vec = np.array(vec)
@@ -176,12 +186,13 @@ def pearson(x, y, sig, N=20):
 	amostras = random.sample(range(0, x.shape[0]), N)
 	print('\nUsando',N,'amostras...')
 	p = np.cov(x[amostras], y[amostras], rowvar=False)[0,1] / math.sqrt(variance(x[amostras]) * variance(y[amostras]))
+
 	to = p*math.sqrt(N-1)/math.sqrt(1-p*p)
 	t = st.t.ppf(sig/2,N-2)
 	if(abs(to) > t):
-		print("Pearson: hipótese nula rejeitada. Existe a possibilidade de haver dependência entre 'x' e 'y' com",sig,'de significância.','\nto =',to,'\nt =',t)
+		print("Pearson: hipótese nula rejeitada. Existe a possibilidade de haver dependência entre 'x' e 'y' com",1-sig,'de significância.','\nto =',to,'\nt =',t)
 	else:
-		print('Pearson: hipótese nula aceita para',sig,'de significância.\nto =',to,'\nt =',t)
+		print('Pearson: hipótese nula aceita para',1-sig,'de significância.\nto =',to,'\nt =',t)
 
 def snedecor(x, y, w, Fs=3.908):
 	X = np.hstack((np.array([ [1] * x.shape[0] ]).T, x))
@@ -230,6 +241,98 @@ def ransac(x, y, s, pot=1, eps=0.2, p=0.99, rmse = 50):
 		elif(mk[0] < k):
 				mk[1] = dentro
 	return getw(x[mk[1],1:(1+pot)], y[mk[1]])
+
+def rochiomah(clss, attr, ntreino):
+	classes = np.unique(clss)
+	clssa = clss.copy()
+	medias = []
+	for i in classes:
+		medias.append(mean(attr[:ntreino][clss[:ntreino] == i]))
+	eta = np.cov(attr[ntreino:],rowvar=False)
+	for i in range(ntreino,clss.shape[0]):
+		diff = attr[i] - medias[0]
+		distancia = math.sqrt(np.dot(np.dot(diff.T, np.linalg.inv(eta)),diff))
+		clssa[i] = classes[0]
+		for j in range(1,len(medias)):
+			# aux = np.linalg.norm(attr[i] - medias[j])
+			diff = attr[i] - medias[j]
+			aux = math.sqrt(np.dot(np.dot(diff.T, np.linalg.inv(eta)),diff))
+			if(aux < distancia):
+				distancia = aux
+				clssa[i] = classes[j]
+
+	res = np.unique(clss[ntreino:] == clssa[ntreino:], return_counts=True)
+	if(res[0][0]):
+		# print('\nAcurácia Rochio Mahalanobis:', 100*res[1][0]/(clssa.shape[0]-ntreino))
+		acc = 100*res[1][0]/(clssa.shape[0]-ntreino)
+	else:
+		# print('\nAcurácia Rochio Mahalanobis:', 100*res[1][1]/(clssa.shape[0]-ntreino))
+		acc = 100*res[1][1]/(clssa.shape[0]-ntreino)
+
+	aux = clss[ntreino:]	# obtém todos exemplos dados como positivos (TP + FP)
+	aux = aux[clssa[ntreino:] == 1]
+
+	res = np.unique(aux == 1, return_counts=True)	# descobre quantos exemplos dados como positivos realmente o são
+	if(res[0][0]):
+		tp = res[1][0]
+		fp = res[1][1]
+	else:
+		tp = res[1][1]
+		fp = res[1][0]
+	P = 100*tp/(tp+fp)
+
+	aux = clss[ntreino:][clssa[ntreino:] == 0]	# obtém todos os exemplos dados como negativos
+	res = np.unique(aux == 1, return_counts=True)	# descobre quantos exemplos são falso negativos
+	if(res[0][0]):
+		fn = res[1][0]
+	else:
+		fn = res[1][1]
+	R = 100*tp/(tp+fn)
+
+	return (acc,P,R)
+
+def knn(clss,attr, ntreino,k=5):
+	clssa = clss.copy()
+	for i in range(ntreino,clss.shape[0]):
+		dists = np.linalg.norm(attr[i] - attr[:,:ntreino],axis=1)
+		largedists = np.argpartition(dists,k)[:k]
+		unq = np.unique(clss[largedists], return_counts=True)
+		if(len(unq[1]) < 2):
+			clssa[i] = unq[0][0]
+		elif(unq[1][0] > unq[1][1]):
+			clssa[i] = unq[0][0]
+		else:
+			clssa[i] = unq[0][1]
+
+	res = np.unique(clss[ntreino:] == clssa[ntreino:], return_counts=True)
+	if(res[0][0]):
+		# print('\nAcurácia Rochio Mahalanobis:', 100*res[1][0]/(clssa.shape[0]-ntreino))
+		acc = 100*res[1][0]/(clssa.shape[0]-ntreino)
+	else:
+		# print('\nAcurácia Rochio Mahalanobis:', 100*res[1][1]/(clssa.shape[0]-ntreino))
+		acc = 100*res[1][1]/(clssa.shape[0]-ntreino)
+
+	aux = clss[ntreino:]	# obtém todos exemplos dados como positivos (TP + FP)
+	aux = aux[clssa[ntreino:] == 1]
+
+	res = np.unique(aux == 1, return_counts=True)	# descobre quantos exemplos dados como positivos realmente o são
+	if(res[0][0]):
+		tp = res[1][0]
+		fp = res[1][1]
+	else:
+		tp = res[1][1]
+		fp = res[1][0]
+	P = 100*tp/(tp+fp)
+
+	aux = clss[ntreino:][clssa[ntreino:] == 0]	# obtém todos os exemplos dados como negativos
+	res = np.unique(aux == 1, return_counts=True)	# descobre quantos exemplos são falso negativos
+	if(res[0][0]):
+		fn = res[1][0]
+	else:
+		fn = res[1][1]
+	R = 100*tp/(tp+fn)
+
+	return (acc,P,R)
 
 
 
@@ -335,25 +438,6 @@ def exe2(folder='bases/'):
 
 	nn(clss, attr, 300)
 
-	# ntreino = 300
-	# clssa = clss.copy()
-	# for i in range(ntreino,data.shape[0]):	# para cada item de teste
-	# 	distancia = 0
-	# 	for j in range(ntreino):	# passa por cada item de treino
-	# 		if(j == 0):
-	# 			distancia = np.linalg.norm(attr[i,2:] - attr[j,2:])
-	# 			clssa[i] = clss[j]
-	# 		else:
-	# 			aux = np.linalg.norm(attr[i,2:] - attr[j,2:])
-	# 			if(aux < distancia):
-	# 				distancia = aux
-	# 				clssa[i] = clss[j]
-	# res = np.unique(data[ntreino:,1] == clssa[ntreino:], return_counts=True)
-	# if(res[0][0]):
-	# 	print('\nAcurácia:', 100*res[1][0]/(clssa.shape[0]-ntreino))
-	# else:
-	# 	print('\nAcurácia:', 100*res[1][1]/(clssa.shape[0]-ntreino))
-
 	# B
 	print('\nLetra B')
 	X = attr
@@ -375,25 +459,6 @@ def exe2(folder='bases/'):
 	X = np.dot(X, autovetores[:,argmax[:j]])
 
 	nn(clss, X, 300)
-
-	# ntreino = 300
-	# clssb = clss.copy()
-	# for i in range(ntreino,X.shape[0]):	# para cada item de teste
-	# 	distancia = 0
-	# 	for j in range(ntreino):	# passa por cada item de treino
-	# 		if(j == 0):
-	# 			distancia = np.linalg.norm(X[i,2:] - X[j,2:])
-	# 			clssb[i] = clss[j]
-	# 		else:
-	# 			aux = np.linalg.norm(X[i,2:] - X[j,2:])
-	# 			if(aux < distancia):
-	# 				distancia = aux
-	# 				clssb[i] = clss[j]
-	# res = np.unique(data[ntreino:,1] == clssb[ntreino:], return_counts=True)
-	# if(res[0][0]):
-	# 	print('\nAcurácia:', 100*res[1][0]/(clssb.shape[0]-ntreino))
-	# else:
-	# 	print('\nAcurácia:', 100*res[1][1]/(clssb.shape[0]-ntreino))
 
 	# C
 	print('\nLetra C')
@@ -419,25 +484,6 @@ def exe2(folder='bases/'):
 	Y = np.dot(autovetores, attr.T).T	# projeção
 
 	nn(clss,Y,300)
-
-	# ntreino = 300
-	# clssc = clss.copy()
-	# for i in range(ntreino,Y.shape[0]):	# para cada item de teste
-	# 	distancia = 0
-	# 	for j in range(ntreino):	# passa por cada item de treino
-	# 		if(j == 0):
-	# 			distancia = np.linalg.norm(Y[i,2:] - Y[j,2:])
-	# 			clssc[i] = clss[j]
-	# 		else:
-	# 			aux = np.linalg.norm(Y[i,2:] - Y[j,2:])
-	# 			if(aux < distancia):
-	# 				distancia = aux
-	# 				clssc[i] = clss[j]
-	# res = np.unique(data[ntreino:,1] == clssc[ntreino:], return_counts=True)
-	# if(res[0][0]):
-	# 	print('\nAcurácia:', 100*res[1][0]/(clssc.shape[0]-ntreino))
-	# else:
-	# 	print('\nAcurácia:', 100*res[1][1]/(clssc.shape[0]-ntreino))
 	# esta abordagem foca na classificação dos exemplos; o vetor de maior de variância não é necessariamente o que gera a melhor projeção para classificar os dados
 
 
@@ -513,6 +559,7 @@ def exe3(folder='bases/'):
 	bins(attrb)
 
 	# classificação
+	ntreino = math.floor(ntreino*attrb.shape[0]/attr.shape[0])
 	nn(clssb,attrb,ntreino)
 	rochio(clssb,attrb,ntreino)
 
@@ -689,6 +736,58 @@ def exe7(folder='bases/'):
 	plt.legend()
 	plt.show()
 
+
+
+
+def exe10(folder='bases/'):
+	print('\nExercício 10')
+	data = []
+	with open(folder + 'HTRU2/HTRU_2.csv') as f:
+		for i in f:
+			l = i.split(',')
+			if('?' not in l):
+				data.append(list(map(float,l)))
+
+	data = np.array(data)
+	# print(data)
+
+	ntreino = 6000
+	niter = 5
+
+	# A
+	print('\nLetra A')
+	acc = 0
+	pre = 0
+	rec = 0
+	for i in range(niter):
+		(a,p,r) = rochiomah(clss=data[:,-1],attr=data[:,:-1],ntreino=ntreino)
+		acc += a
+		pre += p
+		rec += r
+	acc /= 5
+	pre /= 5
+	rec /= 5
+	print('Acurácia:',acc)
+	print('Precisão:',pre)
+	print('Revocação:',rec)
+
+	# B
+	print('\nLetra B')
+	acc = 0
+	pre = 0
+	rec = 0
+	for i in range(niter):
+		(a,p,r) = knn(clss=data[:,-1],attr=data[:,:-1],ntreino=ntreino)
+		acc += a
+		pre += p
+		rec += r
+	acc /= 5
+	pre /= 5
+	rec /= 5
+	print('Acurácia:',acc)
+	print('Precisão:',pre)
+	print('Revocação:',rec)
+
 def main():
 	# exe1()
 	# exe2()
@@ -696,6 +795,7 @@ def main():
 	# exe5()
 	# exe6()
 	# exe7()
+	exe10()
 
 if(__name__ == '__main__'):
 	main()
