@@ -5,3 +5,6 @@
 *.docx
 *.pyc
 *cache*
+*.png
+*.pages
+*.jpg
