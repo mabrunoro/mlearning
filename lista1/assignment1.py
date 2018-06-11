@@ -312,11 +312,16 @@ def knn(clss,attr, ntreino,k=5):
 		# print('\nAcurácia Rochio Mahalanobis:', 100*res[1][1]/(clssa.shape[0]-ntreino))
 		acc = 100*res[1][1]/(clssa.shape[0]-ntreino)
 
-	aux = clss[ntreino:]	# obtém todos exemplos dados como positivos (TP + FP)
-	aux = aux[clssa[ntreino:] == 1]
-
+	aux = clss[ntreino:][clssa[ntreino:] == 1]	# obtém todos exemplos dados como positivos (TP + FP)
 	res = np.unique(aux == 1, return_counts=True)	# descobre quantos exemplos dados como positivos realmente o são
-	if(res[0][0]):
+	if(len(res[0]) < 2):
+		if(res[0][0]):
+			tp = res[1][0]
+			fp = 0
+		else:
+			tp = 0
+			fp = res[1][0]
+	elif(res[0][0]):
 		tp = res[1][0]
 		fp = res[1][1]
 	else:
@@ -329,7 +334,10 @@ def knn(clss,attr, ntreino,k=5):
 	if(res[0][0]):
 		fn = res[1][0]
 	else:
-		fn = res[1][1]
+		if(len(res[0]) < 2):
+			fn = 0
+		else:
+			fn = res[1][1]
 	R = 100*tp/(tp+fn)
 
 	return (acc,P,R)
@@ -773,6 +781,13 @@ def exe10(folder='bases/'):
 
 	# B
 	print('\nLetra B')
+	k = 1
+	acc = 0
+	while(acc < 95):
+		k += 2
+		acc,_,_ = knn(clss=data[:ntreino,-1],attr=data[:ntreino,:-1],ntreino=math.floor(ntreino/2),k=k)
+		print('Acurácia para k = ',k,': ',acc,sep='')
+
 	acc = 0
 	pre = 0
 	rec = 0
@@ -781,6 +796,7 @@ def exe10(folder='bases/'):
 		acc += a
 		pre += p
 		rec += r
+
 	acc /= 5
 	pre /= 5
 	rec /= 5
