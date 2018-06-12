@@ -48,16 +48,22 @@ def decorr(X, PHI=None):
 def projo(X, vec):
 	return np.dot(X, np.transpose(vec))
 
-def nn(clss,attr,ntreino):
+def nn(clss,attr,ntreino,ret=False):
 	clssa = clss.copy()
 	for i in range(ntreino,attr.shape[0]):	# para cada item de teste
 		distancia = 0
 		for j in range(ntreino):	# passa por cada item de treino
 			if(j == 0):
-				distancia = np.linalg.norm(attr[i,2:] - attr[j,2:])
+				if(len(attr.shape) < 2):
+					distancia = np.linalg.norm(attr[i] - attr[j])
+				else:
+					distancia = np.linalg.norm(attr[i,2:] - attr[j,2:])
 				clssa[i] = clss[j]
 			else:
-				aux = np.linalg.norm(attr[i,2:] - attr[j,2:])
+				if(len(attr.shape) < 2):
+					aux = np.linalg.norm(attr[i] - attr[j])
+				else:
+					aux = np.linalg.norm(attr[i,2:] - attr[j,2:])
 				if(aux < distancia):
 					distancia = aux
 					clssa[i] = clss[j]
@@ -66,13 +72,25 @@ def nn(clss,attr,ntreino):
 
 	if(len(res[0]) < 2):
 		if(res[0][0]):
-			print('Acurácia NN: 100')
+			# print('Acurácia NN: 100')
+			# return 100
+			acc = 100
 		else:
-			print('Acurácia NN: 0')
+			# print('Acurácia NN: 0')
+			# return 0
+			acc = 0
 	elif(res[0][0]):
-		print('Acurácia NN:', 100*res[1][0]/(clssa.shape[0]-ntreino))
+		# print('Acurácia NN:', 100*res[1][0]/(clssa.shape[0]-ntreino))
+		# return 100*res[1][0]/(clssa.shape[0]-ntreino)
+		acc = 100*res[1][0]/(clssa.shape[0]-ntreino)
 	else:
-		print('Acurácia NN:', 100*res[1][1]/(clssa.shape[0]-ntreino))
+		# print('Acurácia NN:', 100*res[1][1]/(clssa.shape[0]-ntreino))
+		# return 100*res[1][1]/(clssa.shape[0]-ntreino)
+		acc = 100*res[1][1]/(clssa.shape[0]-ntreino)
+
+	if(not ret):
+		print('Acurácia NN:',acc)
+	return acc
 
 def rochio(clss, attr, ntreino):
 	classes = np.unique(clss)
@@ -183,7 +201,7 @@ def pearson(x, y, sig, N=20):
 		print("Pearson: correlação linear perfeita negativa entre 'x' e 'y'.")
 	elif(p == 0):
 		print("Pearson: hipótese nula. 'x' e 'y' são descorrelacionados.")
-	amostras = random.sample(range(0, x.shape[0]), N)
+	amostras = random.sample(range(x.shape[0]), N)
 	print('\nUsando',N,'amostras...')
 	p = np.cov(x[amostras], y[amostras], rowvar=False)[0,1] / math.sqrt(variance(x[amostras]) * variance(y[amostras]))
 
@@ -351,6 +369,41 @@ def knn(clss,attr, ntreino,k=5):
 		R = 100*tp/(tp+fn)
 
 	return (acc,P,R)
+
+def sfs(clss, attr, aval, ntreino, lim=5):
+	if(lim >= attr.shape[1]):
+		return attr
+
+	best = [0, [0]]
+	l = list(range(attr.shape[1]))
+	for j in range(attr.shape[1]):
+		if(j == 0):
+			best[0] = aval(clss, attr[:,j], ntreino, ret=True)
+			best[1][0] = 0
+		else:
+			aux = aval(clss, attr[:,j], ntreino, ret=True)
+			if(aux > best[0]):
+				best[0] = aux
+				best[1][0] = j
+
+	l.remove(best[1][0])
+	laux = [best[1][0]]
+
+	for i in range(1,lim):
+		best[1].append(0)
+		laux.append(0)
+		for j in l:
+			laux[i] = j
+			aux = aval(clss, attr[:,laux], ntreino, ret=True)
+			if(aux > best[0]):
+				best[0] = aux
+				best[1][i] = j
+		# print(best[1], l, best[0])
+		if((best[0] >= 99) or (best[1][i] not in l)):
+			best[1] = best[1][:-1]
+			break
+		l.remove(best[1][i])
+	return best[1]
 
 
 
@@ -843,6 +896,34 @@ def exe10(folder='bases/'):
 	print('Precisão:',pre)
 	print('Revocação:',rec)
 
+
+
+
+def exe11(folder='bases/'):
+	print('\nExercício 11')
+	data = []
+	with open(folder + 'wine.data.txt') as f:
+		for i in f:
+			l = i.split(',')
+			if('?' not in l):
+				data.append(list(map(float,l)))
+
+	data = np.array(data)
+	# print(data)
+
+	# A
+	print('\nLetra A')
+	N = data.shape[0]
+	samples = random.sample(range(N),N)
+	data1 = data[samples[:math.floor(N/3)]]
+	data2 = data[samples[math.floor(N/3):math.floor(2*N/3)]]
+	data3 = data[samples[math.floor(2*N/3):]]
+
+	ntreino = data1.shape[0]
+	datasfs = np.vstack((data1,data2))
+
+	print(sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino))
+
 def main():
 	# exe1()
 	# exe2()
@@ -850,7 +931,8 @@ def main():
 	# exe5()
 	# exe6()
 	# exe7()
-	exe10()
+	# exe10()
+	exe11()
 
 if(__name__ == '__main__'):
 	main()
