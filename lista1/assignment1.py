@@ -390,7 +390,7 @@ def sfs(clss, attr, aval, ntreino, lim=5):
 	laux = [best[1][0]]
 
 	for i in range(1,lim):
-		best[1].append(0)
+		best[1].append(-1)
 		laux.append(0)
 		for j in l:
 			laux[i] = j
@@ -399,11 +399,11 @@ def sfs(clss, attr, aval, ntreino, lim=5):
 				best[0] = aux
 				best[1][i] = j
 		# print(best[1], l, best[0])
-		if((best[0] >= 99) or (best[1][i] not in l)):
+		if((best[0] >= 99) or (best[1][i] == -1)):
 			best[1] = best[1][:-1]
 			break
 		l.remove(best[1][i])
-	return best[1]
+	return (best[1],best[0])
 
 
 
