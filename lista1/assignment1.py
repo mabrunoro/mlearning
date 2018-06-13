@@ -970,6 +970,34 @@ def exe11(folder='bases/'):
 	print('Atributos selecionados:',atributos)
 	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
 
+	# B
+	print('\nLetra B')
+	atributos,_ = sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino, lim=10)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+
+	atributos,_ = sbe(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino, lim=10)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+
+	# C
+	print('\nLetra C')
+	atributos,_ = sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+
+	atributos,_ = sbe(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+
+	atributos,_ = sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino, lim=10)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+
+	atributos,_ = sbe(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino, lim=10)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+
 def main():
 	# exe1()
 	# exe2()
