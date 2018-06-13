@@ -56,12 +56,16 @@ def nn(clss,attr,ntreino,ret=False):
 			if(j == 0):
 				if(len(attr.shape) < 2):
 					distancia = np.linalg.norm(attr[i] - attr[j])
+				elif(ret):
+					distancia = np.linalg.norm(attr[i,:] - attr[j,:])
 				else:
 					distancia = np.linalg.norm(attr[i,2:] - attr[j,2:])
 				clssa[i] = clss[j]
 			else:
 				if(len(attr.shape) < 2):
 					aux = np.linalg.norm(attr[i] - attr[j])
+				elif(ret):
+					aux = np.linalg.norm(attr[i,:] - attr[j,:])
 				else:
 					aux = np.linalg.norm(attr[i,2:] - attr[j,2:])
 				if(aux < distancia):
@@ -371,8 +375,8 @@ def knn(clss,attr, ntreino,k=5):
 	return (acc,P,R)
 
 def sfs(clss, attr, aval, ntreino, lim=5):
-	if(lim >= attr.shape[1]):
-		return attr
+	if((len(attr.shape) > 1) and (lim >= attr.shape[1])):
+		return (list(range(attr.shape[1])),0)
 
 	best = [0, [0]]
 	l = list(range(attr.shape[1]))
@@ -391,6 +395,7 @@ def sfs(clss, attr, aval, ntreino, lim=5):
 
 	for i in range(1,lim):
 		best[1].append(-1)
+		best[0] = 0
 		laux.append(0)
 		for j in l:
 			laux[i] = j
@@ -398,13 +403,48 @@ def sfs(clss, attr, aval, ntreino, lim=5):
 			if(aux > best[0]):
 				best[0] = aux
 				best[1][i] = j
-		# print(best[1], l, best[0])
+			# print(best[1], j, aux, best[0])
 		if((best[0] >= 99) or (best[1][i] == -1)):
 			best[1] = best[1][:-1]
 			break
 		l.remove(best[1][i])
-	return (best[1],best[0])
+	return (np.array(best[1]),best[0])
 
+def sbe(clss, attr, aval, ntreino, lim=5):
+	if((len(attr.shape) > 1) and (lim >= attr.shape[1])):
+		return (list(range(attr.shape[1])),0)
+
+	best = [0, np.array(range(attr.shape[1]))]
+	l = best[1]
+
+	for j in range(attr.shape[1]):
+		if(j == 0):
+			best[0] = aval(clss, np.delete(attr, j, axis=1), ntreino, ret=True)
+			l = np.delete(best[1], j)
+		else:
+			aux = aval(clss, np.delete(attr, j, axis=1), ntreino, ret=True)
+			if(aux > best[0]):
+				best[0] = aux
+				l = np.delete(best[1], j)
+
+	best[1] = l
+
+	while(best[1].shape[0] > lim):
+		best[0] = 0
+
+		for j in range(best[1].shape[0]):
+			laux = np.delete(best[1], j)
+			aux = aval(clss, attr[:,laux], ntreino, ret=True)
+			if(aux > best[0]):
+				best[0] = aux
+				l = laux
+			# print(best[1], j, aux, best[0])
+		# if((best[0] >= 99) or (best[1][i] == -1)):
+		# 	best[1] = best[1][:-1]
+		# 	break
+		best[1] = l
+
+	return (best[1],best[0])
 
 
 
@@ -922,7 +962,13 @@ def exe11(folder='bases/'):
 	ntreino = data1.shape[0]
 	datasfs = np.vstack((data1,data2))
 
-	print(sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino))
+	atributos,_ = sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+
+	atributos,_ = sbe(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino)
+	print('Atributos selecionados:',atributos)
+	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
 
 def main():
 	# exe1()
