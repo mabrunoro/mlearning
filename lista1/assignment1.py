@@ -1009,7 +1009,17 @@ def main():
 	# exe6()
 	# exe7()
 	# exe10()
-	exe11()
+	# exe11()
+	print('A resolução da lista foi implementada em funções.')
+	print('As funções, que podem ser acessadas importando este arquivo, são:')
+	print('\texe1()')
+	print('\texe2()')
+	print('\texe3()')
+	print('\texe5()')
+	print('\texe6()')
+	print('\texe7()')
+	print('\texe10()')
+	print('\texe11()')
 
 if(__name__ == '__main__'):
 	main()
