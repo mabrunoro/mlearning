@@ -404,9 +404,9 @@ def sfs(clss, attr, aval, ntreino, lim=5):
 				best[0] = aux
 				best[1][i] = j
 			# print(best[1], j, aux, best[0])
-		if((best[0] >= 99) or (best[1][i] == -1)):
-			best[1] = best[1][:-1]
-			break
+		# if((best[0] >= 99) or (best[1][i] == -1)):
+		# 	best[1] = best[1][:-1]
+		# 	break
 		l.remove(best[1][i])
 	return (np.array(best[1]),best[0])
 
@@ -982,21 +982,24 @@ def exe11(folder='bases/'):
 
 	# C
 	print('\nLetra C')
-	atributos,_ = sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino)
+	# para simular o caso em que o mesmo conjunto de dados seja utilizado para treinamento e validação, é criado uma matriz duplicando os dados
+	datac = np.vstack((datasfs,datasfs))
+	ntreino = datasfs.shape[0]
+	atributos,_ = sfs(clss=datac[:,0], attr=datac[:,1:], aval=nn, ntreino=ntreino)
 	print('Atributos selecionados:',atributos)
-	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+	nn(data[samples,0],data[samples][:,atributos],ntreino=ntreino)
 
-	atributos,_ = sbe(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino)
+	atributos,_ = sbe(clss=datac[:,0], attr=datac[:,1:], aval=nn, ntreino=ntreino)
 	print('Atributos selecionados:',atributos)
-	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+	nn(data[samples,0],data[samples][:,atributos],ntreino=ntreino)
 
-	atributos,_ = sfs(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino, lim=10)
+	atributos,_ = sfs(clss=datac[:,0], attr=datac[:,1:], aval=nn, ntreino=ntreino, lim=10)
 	print('Atributos selecionados:',atributos)
-	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+	nn(data[samples,0],data[samples][:,atributos],ntreino=ntreino)
 
-	atributos,_ = sbe(clss=datasfs[:,0], attr=datasfs[:,1:], aval=nn, ntreino=ntreino, lim=10)
+	atributos,_ = sbe(clss=datac[:,0], attr=datac[:,1:], aval=nn, ntreino=ntreino, lim=10)
 	print('Atributos selecionados:',atributos)
-	nn(data[samples,0],data[samples][:,atributos],ntreino=(data1.shape[0]+data2.shape[0]))
+	nn(data[samples,0],data[samples][:,atributos],ntreino=ntreino)
 
 def main():
 	# exe1()
