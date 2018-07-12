@@ -118,7 +118,7 @@ def exe01(arg):
 		else:
 			print("P(x4=4 | x1=med, x3=2) =", 0)
 
-	# C
+	# D
 	print("\nLetra D")
 	aux = data[data[:, 2] == '2']
 	aux = aux[aux[:, 3] == '2']
@@ -422,6 +422,22 @@ def exe05(arg):
 	print("\tsendo que 'x', 'y' e 'z' assumem os valores 0 e 1, independentemente.")
 
 
+# def exe06(arg):
+# 	print("\n\nExercício 6")
+# 	data = []
+# 	with open(arg) as f:
+# 		for l in f:
+# 			data.append(l.rstrip().split(','))
+#
+# 	data = np.array(data)
+# 	classes = np.unique(data[:,-1], return_counts=True)
+#
+# 	entropia = 0
+# 	for i in range(classes[0].shape[0]):
+# 		aux = classes[1][i] / np.sum(classes[1])
+# 		entropia -= aux * math.log2(aux)
+
+
 
 
 def main(arg=None):
@@ -430,11 +446,12 @@ def main(arg=None):
 	else:
 		folder = arg
 
-	# exe01(folder + "car.data.txt")
-	# exe02(folder + "balance-scale.data.txt")
-	# exe03()
-	# exe04()
+	exe01(folder + "car.data.txt")
+	exe02(folder + "balance-scale.data.txt")
+	exe03()
+	exe04()
 	exe05("transito.txt")
+	# exe06(folder + "car.data.txt")
 
 if __name__ == '__main__':
 	main("bases/")
