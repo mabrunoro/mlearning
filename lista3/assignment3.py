@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import scipy.stats as stats
 import random
 import math
 import sys
@@ -27,8 +28,11 @@ def sigmoidder(x):
 
 
 class Perceptron:
-	def __init__(self, nin=2, n=0.25, act=lambda x: np.heaviside(x, 0.5)):
-		self.w = np.zeros(nin+1)	# pesos + bias
+	def __init__(self, nin=2, n=0.25, act=(lambda x: np.heaviside(x, 0.5)), ran=False):
+		if(ran):
+			self.w = np.random.random(nin+1)*2 - 1
+		else:
+			self.w = np.zeros(nin+1)	# pesos + bias
 		self.phi = act	# função de ativação
 		self.n = n	# taxa aprendizado
 
@@ -48,17 +52,16 @@ class Perceptron:
 		# return lambda x: (self.w[0] + self.w[1]*x)/(-self.w[2])
 		return (self.w[0] + self.w[1]*x)/(-self.w[2])
 
-class MLP:
-	def __init__(self, nin=4, nhid=16, nout=3, n=0.25):
+class NN:
+	def __init__(self, nin=4, nhid=16, nout=3, n=0.25, elm=False):
 		self.nin = nin
 		self.nhid = nhid
 		self.nout = nout
 		self.n = n
-		self.build()
+		self.build(elm=elm)
 
-	def build(self):
-		# self.input = np.array([ Perceptron(nin=self.nin, act=np.tanh) for i in range(self.nin) ])
-		self.hidden = np.array([ Perceptron(nin=self.nin, act=sigmoid) for i in range(self.nhid) ])
+	def build(self, elm=False):
+		self.hidden = np.array([ Perceptron(nin=self.nin, act=sigmoid, ran=elm) for i in range(self.nhid) ])
 		self.output = np.array([ Perceptron(nin=self.nhid, act=sigmoid) for i in range(self.nout) ])
 
 	def fun(self, X):
@@ -87,6 +90,18 @@ class MLP:
 		errt /= X.shape[0]
 		return errt
 
+	def elm(self, X, Y):
+		H = []
+		for i in range(X.shape[0]):
+			H.append(self.fun(X[i])[0])
+		H = np.array(H)
+		if(H.shape[0] > H.shape[1]):
+			piH = np.matmul(np.power(np.matmul(H.T, H), -1), H.T)
+		else:
+			piH = np.matmul(H.T, np.power(np.matmul(H, H.T), -1))
+		B = np.matmul(piH, Y)
+		self.output[0].w = B
+
 
 def exe01(folder,lfiles):
 	print("\nExercise 1")
@@ -104,6 +119,7 @@ def exe01(folder,lfiles):
 		samples = random.sample(range(data.shape[0]), data.shape[0])
 
 		# K-Means
+		print("K-Means")
 		for i in range(nclusters):	# initiates clusters with random samples
 			clusters.append([data[samples[i]]])
 
@@ -117,7 +133,7 @@ def exe01(folder,lfiles):
 			k = np.array(clusters[i])
 			u = np.unique(k[:,2], return_counts=True)
 			c = np.argmax(u[1])
-			print(u)
+			# print(u)
 			print("Cluster ", i, " class: ", u[0][c], ". Accuracy: ", u[1][c]/len(clusters[i]))
 
 		for i in range(len(clusters)):
@@ -127,6 +143,7 @@ def exe01(folder,lfiles):
 		plt.show()
 
 		# Hierarchical Clustering
+		print("Hierarchical Clustering")
 		clusters = [np.array([data[i]]) for i in range(data.shape[0])]
 		while(len(clusters) > nclusters):
 			best = None
@@ -145,7 +162,7 @@ def exe01(folder,lfiles):
 			k = clusters[i]
 			u = np.unique(k[:,2], return_counts=True)
 			c = np.argmax(u[1])
-			print(u)
+			# print(u)
 			print("Cluster ", i, " class: ", u[0][c], ". Accuracy: ", u[1][c]/len(clusters[i]))
 
 		for i in range(len(clusters)):
@@ -155,7 +172,7 @@ def exe01(folder,lfiles):
 		plt.show()
 
 
-def exe02(file):
+def exe02():
 	print('\nExercise 2')
 	print('On report.')
 
@@ -167,6 +184,8 @@ def exe03():
 	p = Perceptron()
 	for i in range(7):
 		p.train(X,Y)
+
+	print("Weights:", p.w)
 
 	y = np.array([p.fun(i) for i in X])
 
@@ -193,11 +212,14 @@ def exe04(file):
 			data.append([1.0] + list(map(float, l[:-1])))
 			clasn.append(l[-1])
 			if(l[-1] == 'Iris-setosa'):
-				clas.append([1,0,0])
+				# clas.append([1,0,0])
+				clas.append(1)
 			elif(l[-1] == 'Iris-versicolor'):
-				clas.append([0,1,0])
+				# clas.append([0,1,0])
+				clas.append(2)
 			else:
-				clas.append([0,0,1])
+				# clas.append([0,0,1])
+				clas.append(3)
 
 	data = np.array(data)
 	clas = np.array(clas)
@@ -208,22 +230,92 @@ def exe04(file):
 
 	# A
 	print("\n\tA")
-	for iter in range(4):
-		m = MLP()
+	acc = []
+	best = (4,10)
+	for t in range(4,16):
+		m = NN(nhid=t,nout=1)
 		m.train(data[samples[:2*quarto]],clas[samples[:2*quarto]])
 		err = m.train(data[samples[2*quarto:3*quarto]],clas[samples[2*quarto:3*quarto]])
-		# print(err)
+		if(err < best[1]):
+			best = (t,err)
+
+	m = NN(nhid=best[0],nout=1)
+	for iter in range(4):
+		samples = random.sample(range(len(data)), len(data))
 		m.train(data[samples[:3*quarto]],clas[samples[:3*quarto]])
 		_,o = m.fun(data[samples[3*quarto:]])
-		v = 1 - np.sum(abs(o - clas[samples[3*quarto:]]))/(2*o.shape[0])
-		print(v)
+		v = np.sum(abs(o - clas[samples[3*quarto:]]))/(o.shape[0])
+		acc.append(v)
+	print("Accuracy:", acc)
+	print("Mean:", np.mean(acc))
+	print("Standard deviation:",np.std(acc))
+	# print([i.w for i in m.output])
+
+	# B
+	print("\n\tB")
+	acc = []
+	best = (4,10)
+	samples = random.sample(range(len(data)), len(data))
+	for t in range(4,16):
+		e = NN(nhid=t, nout=1, elm=True)
+		e.elm(data[samples[:2*quarto]], clas[samples[:2*quarto]])
+		_,o = e.fun(data[samples[2*quarto:3*quarto]])
+		err = np.sum(abs(o - clas[samples[2*quarto:3*quarto]]))/(o.shape[0])
+		if(err < best[1]):
+			best = (t,err)
+
+	e = NN(nhid=best[0], nout=1, elm=True)
+	for iter in range(4):
+		samples = random.sample(range(len(data)), len(data))
+		e.elm(data[samples[:3*quarto]], clas[samples[:3*quarto]])
+		_,o = e.fun(data[samples[3*quarto:]])
+		v = np.sum(abs(o - clas[samples[3*quarto:]]))/(o.shape[0])
+		acc.append(v)
+	print("Accuracy:", acc)
+	print("Mean:", np.mean(acc))
+	print("Standard deviation:",np.std(acc))
+
+
+def exe05(file):
+	print("\nExercise 5")
+	data = []
+	with open(file) as f:
+		for l in f:
+			data.append(list(map(float,l.split())))
+	data = np.array(data) / 100
+	# print(data.shape)
+	dif = data[:,0] - data[:,1]
+
+	# Algoritmo para remover diferenças iguais deliberadamente removido do código.
+	# Aparentemente, deveria ser realizada uma análise das diferenças iguais (em módulo) com
+	# o sinal para que as médias não sejam desbalanceadas na remoção
+	# sorted = np.argsort(abs(dif))
+	# remove = []
+	# ig = 0
+	#
+	# for i in range(sorted.shape[0] - 1):
+	# 	print(dif[sorted[i]], dif[sorted[i+1]])
+	# 	if(dif[sorted[i]] == dif[sorted[i+1]]):
+	# 		ig += 1
+	# 	else:
+	# 		if((ig > 0) and (ig % 2 == 0)):
+	# 			remove.append(i)
+	# 		ig = 0
+	# print(remove)
+
+	ranks = stats.rankdata(abs(dif))
+	Rp = np.sum(ranks[dif > 0])
+	Rm = np.sum(ranks[dif < 0])
+	print("R+:", Rp)
+	print("R-:", Rm)
 
 
 def main(folder='bases/'):
 	# exe01(folder, [('spiral.txt',3), ('jain.txt',2)])
 	# exe02()
 	# exe03()
-	exe04(folder+'iris.data.txt')
+	exe04(folder + 'iris.data.txt')
+	# exe05(folder + "wilcoxon.txt")
 
 if __name__ == '__main__':
 	main()
